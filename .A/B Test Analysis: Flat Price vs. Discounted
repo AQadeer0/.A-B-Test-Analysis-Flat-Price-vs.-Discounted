@@ -1,0 +1,65 @@
+import numpy as np
+from scipy import stats
+
+# Step 2: Create a Sample DataFrame to simulate the A/B test results
+# Assume we ran the test for 1000 users in each group (Group A = Flat Price, Group B = Discounted Price)
+data = {
+    'user_id': np.arange(1, 2001),  # 2000 users
+    'group': np.random.choice(['A', 'B'], size=2000),  # Randomly assign users to Group A or Group B
+    'purchase_made': np.random.choice([0, 1], size=2000, p=[0.7, 0.3]),  # 30% conversion rate
+    'purchase_amount': np.nan  # Initially set purchase_amount to NaN
+}
+
+# Step 3: Assigning a purchase amount based on the group
+df = pd.DataFrame(data)
+
+# Flat Price (Group A) users pay $50
+df.loc[df['group'] == 'A', 'purchase_amount'] = 50
+
+# Discounted Price (Group B) users pay $45
+df.loc[df['group'] == 'B', 'purchase_amount'] = 45
+
+# Step 4: Calculate the total revenue for each group
+revenue_by_group = df.groupby('group')['purchase_amount'].sum()
+print("Revenue by Group:")
+print(revenue_by_group)
+
+# Step 5: Calculate the conversion rate for each group
+conversion_rate = df.groupby('group')['purchase_made'].mean()
+print("\nConversion Rate by Group:")
+print(conversion_rate)
+
+# Step 6: Statistical Test (t-test) to compare the means of two groups (Conversion Rates)
+group_a_conversions = df[df['group'] == 'A']['purchase_made']
+group_b_conversions = df[df['group'] == 'B']['purchase_made']
+
+t_stat, p_value = stats.ttest_ind(group_a_conversions, group_b_conversions)
+print("\nT-test for Conversion Rates (Group A vs Group B):")
+print(f"T-statistic: {t_stat}, P-value: {p_value}")
+
+# Step 7: Statistical Test (t-test) to compare the means of two groups (Revenue)
+group_a_revenue = df[df['group'] == 'A']['purchase_amount']
+group_b_revenue = df[df['group'] == 'B']['purchase_amount']
+
+t_stat_revenue, p_value_revenue = stats.ttest_ind(group_a_revenue, group_b_revenue)
+print("\nT-test for Revenue (Group A vs Group B):")
+print(f"T-statistic: {t_stat_revenue}, P-value: {p_value_revenue}")
+
+# Step 8: Optional – Linear Regression Model to predict purchase_amount based on group and time of purchase
+# Adding time of purchase as a random factor (for demonstration purposes)
+df['time_of_purchase'] = np.random.randint(1, 24, size=2000)  # Random hour of the day when purchase was made
+df['group_A'] = np.where(df['group'] == 'A', 1, 0)
+
+import statsmodels.api as sm
+
+# Define features (independent variables) and target (dependent variable)
+X = df[['group_A', 'time_of_purchase']]
+X = sm.add_constant(X)  # Adding constant for the intercept term
+y = df['purchase_amount']
+
+# Fit the regression model
+model = sm.OLS(y, X).fit()
+
+# Print the summary of the regression results
+print("\nLinear Regression Results for predicting purchase_amount:")
+print(model.summary())
